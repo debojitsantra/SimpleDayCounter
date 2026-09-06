@@ -1,0 +1,9 @@
+<Application x:Class="SimpleDayCounter.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <!--
+      ShutdownMode="OnExplicitShutdown" is important here beacuse without it WPF closes
+      the whole app the moment the last Window closes.
+    -->
+</Application>

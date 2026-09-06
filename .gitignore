@@ -1,0 +1,31 @@
+## .NET / Visual Studio build output
+bin/
+obj/
+publish/
+artifacts/
+
+## Rider / VS user-specific files
+.vs/
+.idea/
+*.user
+*.userosscache
+*.suo
+
+## Build results
+*.dll
+*.exe
+*.pdb
+
+## NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## App runtime data (stored in %AppData%, never in the repo anyway,
+## but ignore if accidentally created locally during testing)
+widgets.json
+settings.json
