@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using SimpleDayCounter.Models;
 using SimpleDayCounter.Services;
@@ -16,6 +17,10 @@ namespace SimpleDayCounter
     /// </summary>
     public partial class App : System.Windows.Application
     {
+
+        private const string SingleInstanceMutexName = "SimpleDayCounter-9F1B2C3D-4E5F-4A6B-8C7D-1E2F3A4B5C6D";
+
+        private Mutex? _singleInstanceMutex;
         private Forms.NotifyIcon? _trayIcon;
         private readonly Dictionary<string, WidgetWindow> _openWidgets = new();
         private List<WidgetConfig> _widgets = new();
@@ -25,6 +30,21 @@ namespace SimpleDayCounter
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out bool createdNew);
+            if (!createdNew)
+            {
+                System.Windows.MessageBox.Show(
+                    "SimpleDayCounter is already running - check your system tray.",
+                    "SimpleDayCounter",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+
+                _singleInstanceMutex = null; 
+                Shutdown();
+                return;
+            }
+
 
             DispatcherUnhandledException += (_, args) =>
             {
@@ -75,6 +95,7 @@ namespace SimpleDayCounter
                 bool succeeded = StartupService.SetEnabled(startupItem.Checked);
                 if (!succeeded)
                 {
+                    // Revert the checkbox - the change was not actually applied.
                     startupItem.Checked = !startupItem.Checked;
                     System.Windows.MessageBox.Show(
                         "Couldn't set \"Start with Windows\" because the app's own .exe path " +
@@ -118,6 +139,7 @@ namespace SimpleDayCounter
             }
             catch
             {
+                // Fall through to system default below.
             }
 
             return System.Drawing.SystemIcons.Application;
@@ -125,7 +147,8 @@ namespace SimpleDayCounter
 
         private void OpenSettings()
         {
-
+            //  bring the existing
+            // one to front instead of stacking duplicates.
             if (_settingsWindow != null)
             {
                 _settingsWindow.Activate();
@@ -144,6 +167,8 @@ namespace SimpleDayCounter
 
         private void OnWidgetAdded(WidgetConfig widget)
         {
+            // Cascade new widgets diagonally so they don't spawn stacked
+            // directly on top of each other before the user drags them apart.
             int index = _widgets.Count;
             widget.X = 80 + (index % 6) * 40;
             widget.Y = 80 + (index % 6) * 40;
@@ -207,6 +232,9 @@ namespace SimpleDayCounter
 
             _trayIcon!.Visible = false;
             _trayIcon.Dispose();
+
+            _singleInstanceMutex?.ReleaseMutex();
+            _singleInstanceMutex?.Dispose();
 
             Shutdown();
         }
