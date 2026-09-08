@@ -5,11 +5,7 @@ using SimpleDayCounter.Models;
 
 namespace SimpleDayCounter.Views
 {
-    /// <summary>
-    /// Modal add/edit form for a single widget. Mutates the WidgetConfig
-    /// passed in directly and sets DialogResult = true on success, so the
-    /// caller (SettingsWindow) knows whether to keep the change.
-    /// </summary>
+
     public partial class WidgetEditorWindow : Window
     {
         private readonly WidgetConfig _target;
@@ -59,8 +55,7 @@ namespace SimpleDayCounter.Views
             MonthBox.SelectedIndex = target.TargetDate.Month - 1;
             YearBox.SelectedItem = target.TargetDate.Year;
 
-            // Preselect the matching preset if the current color matches one,
-            // otherwise leave the preset list blank and show it in the custom box.
+
             var matchIndex = Array.FindIndex(PresetColors, p => string.Equals(p.Hex, target.Color, StringComparison.OrdinalIgnoreCase));
             if (matchIndex >= 0)
             {
@@ -69,6 +64,15 @@ namespace SimpleDayCounter.Views
             else
             {
                 CustomColorBox.Text = target.Color;
+            }
+        }
+
+        private void ColorBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+
+            if (CustomColorBox != null)
+            {
+                CustomColorBox.Text = string.Empty;
             }
         }
 

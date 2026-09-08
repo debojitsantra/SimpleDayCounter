@@ -8,16 +8,11 @@ using SimpleDayCounter.Models;
 
 namespace SimpleDayCounter.Views
 {
-    /// <summary>
-    /// A single floating, draggable, always-on-top day-counter card.
-    /// Refreshes its text once a minute via DispatcherTimer
-    /// </summary>
     public partial class WidgetWindow : Window
     {
         public WidgetConfig Config { get; private set; }
 
-        /// <summary>Raised whenever the user finishes dragging this widget, so the
-        /// owner (App) can persist the new position.</summary>
+
         public event Action<WidgetWindow>? PositionChanged;
 
         private readonly DispatcherTimer _refreshTimer;
@@ -27,13 +22,14 @@ namespace SimpleDayCounter.Views
             InitializeComponent();
             Config = config;
 
-            Left = config.X;
-            Top = config.Y;
+            var (clampedX, clampedY) = ClampToVisibleScreen(config.X, config.Y);
+            Left = clampedX;
+            Top = clampedY;
             Topmost = alwaysOnTop;
 
             ApplyConfig();
 
-            // Update once a minute. A day-counter never needs a tighter
+            // Update once a minute. 
             _refreshTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMinutes(1)
@@ -42,6 +38,41 @@ namespace SimpleDayCounter.Views
             _refreshTimer.Start();
 
             Closed += (_, _) => _refreshTimer.Stop();
+        }
+
+        private static (double X, double Y) ClampToVisibleScreen(double x, double y)
+        {
+            double virtualLeft = SystemParameters.VirtualScreenLeft;
+            double virtualTop = SystemParameters.VirtualScreenTop;
+            double virtualWidth = SystemParameters.VirtualScreenWidth;
+            double virtualHeight = SystemParameters.VirtualScreenHeight;
+
+            // Leave a little margin so the card isn't flush against the very edge.
+            const double margin = 20;
+            double minX = virtualLeft + margin;
+            double minY = virtualTop + margin;
+            double maxX = virtualLeft + virtualWidth - margin;
+            double maxY = virtualTop + virtualHeight - margin;
+
+            // If the whole virtual desktop is somehow degenerate, just fall
+            // back to the saved position rather than risk dividing/clamping
+            // into something nonsensical.
+            if (virtualWidth <= 0 || virtualHeight <= 0)
+            {
+                return (x, y);
+            }
+
+            bool onScreen = x >= virtualLeft && x <= virtualLeft + virtualWidth
+                             && y >= virtualTop && y <= virtualTop + virtualHeight;
+
+            if (onScreen)
+            {
+                return (x, y);
+            }
+
+            double clampedX = Math.Min(Math.Max(x, minX), maxX);
+            double clampedY = Math.Min(Math.Max(y, minY), maxY);
+            return (clampedX, clampedY);
         }
 
         /// <summary>Applies a new always-on-top state to this already-open window.</summary>
@@ -63,7 +94,7 @@ namespace SimpleDayCounter.Views
             }
             catch
             {
-                // Bad/missing color string - fall back to the default already set in XAML.
+              
             }
 
             UpdateCountdownText();
@@ -96,13 +127,27 @@ namespace SimpleDayCounter.Views
         {
             if (e.ButtonState == MouseButtonState.Pressed)
             {
-                DragMove();
+                double startLeft = Left;
+                double startTop = Top;
+
+                try
+                {
+                    DragMove();
+                }
+                catch (InvalidOperationException)
+                {
+
+                    return;
+                }
 
                 // DragMove blocks until the mouse button is released, so by
-                // the time we get here the drag is finished.
-                Config.X = Left;
-                Config.Y = Top;
-                PositionChanged?.Invoke(this);
+
+                if (Left != startLeft || Top != startTop)
+                {
+                    Config.X = Left;
+                    Config.Y = Top;
+                    PositionChanged?.Invoke(this);
+                }
             }
         }
     }
